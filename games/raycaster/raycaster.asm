@@ -25,7 +25,20 @@ main_loop:
     ; else, save tick to si and draw next frame
     mov si, dx
     mov cx, 320 ; loop once for each column
-    xor di, di ; reset di to 0
+angle_loop:
+    ; cx represents the current column, looping from right side to left side
+    ; angle can be calculated from the low 6 bits of the player angle + cx / 20 - 16
+    ; this gives a 90 degree fov
+
+    ; divide cx by 20, result is in ax
+    xor dx, dx
+    mov ax, cx
+    mov bx, 20
+    div bx
+    add al, [player_angle] ; add angle
+    sub al, 16 ; sub 16, to get the final result angle
+    call get_sin
+    loop angle_loop
 
 ; input: al 0 to 63
 ; output: the signed value in al
@@ -62,6 +75,14 @@ map:
     db 0x81
     db 0x81
     db 0xFF
+; player angle is from 0 to 63
+player_angle:
+    db 0
+; the actual position is x or y / 32, but only saving it from 0-7 is less precise than this
+player_x:
+    db 127
+player_y:
+    db 127
 
 
 ; magic number to tell computer this is bootable
