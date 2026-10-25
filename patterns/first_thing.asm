@@ -10,9 +10,8 @@ start:
     ; vram can now be accessed with es:di
     mov ax, 0xa000
     mov es, ax
-    ; set di to 0
-    xor di, di
-    mov bx, 1
+    ; set bx to 0
+    xor bx, bx
 
 main_loop:
     ; save tick count to dx
@@ -27,6 +26,21 @@ main_loop:
 
     ; else, save tick to si and draw next frame
     mov si, dx
+
+    jmp pattern_start
+
+pattern_start:
+    ; set di to 0
+    xor di, di
+    ; increment bx and save its value to cx for the loop
+    inc bx
+    mov cx, bx
+    .loop:
+        mov ax, [es:di]
+        inc ax
+        stosb
+        loop .loop
+    jmp main_loop
 
 ; magic number to tell computer this is bootable
 times 510 - ($ - $$) db 0
