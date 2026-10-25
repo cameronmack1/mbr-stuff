@@ -27,7 +27,8 @@ main_loop:
     ; else, save tick to si and draw next frame
     mov si, dx
 
-    jmp pattern_start
+    call pattern_start
+    jmp main_loop
 
 pattern_start:
     ; set di to 0
@@ -46,7 +47,7 @@ pattern_start:
         .inner_loop:
             ; check if we are past the framebuffer before drawing
             cmp di, 64000
-            jae main_loop
+            jae .end
             ; increment 1 to bx pixels
             mov al, [es:di]
             inc al
@@ -60,7 +61,8 @@ pattern_start:
         cmp dx, 0
         ja .outer_loop
         
-    jmp main_loop
+    .end:
+        ret
 
 ; magic number to tell computer this is bootable
 times 510 - ($ - $$) db 0
