@@ -34,12 +34,31 @@ pattern_start:
     xor di, di
     ; increment bx and save its value to cx for the loop
     inc bx
-    mov cx, bx
-    .loop:
-        mov ax, [es:di]
-        inc ax
-        stosb
-        loop .loop
+    mov dx, bx
+    .outer_loop:
+        mov cx, dx
+        cmp cx, 320
+        jbe .pre_loop
+        mov cx, 320
+        .pre_loop:
+        mov bp, cx
+        .inner_loop:
+            ; check if we are past the framebuffer before drawing
+            cmp di, 64000
+            jae main_loop
+            ; increment 1 to bx pixels
+            mov al, [es:di]
+            inc al
+            stosb
+            loop .inner_loop
+        ; reset di to the first column in the next row
+        sub di, bp
+        add di, 320
+        ; subtract 1 from dx and check if its 0
+        sub dx, 1
+        cmp dx, 0
+        ja .outer_loop
+        
     jmp main_loop
 
 ; magic number to tell computer this is bootable
