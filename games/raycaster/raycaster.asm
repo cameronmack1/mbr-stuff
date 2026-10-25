@@ -29,6 +29,7 @@ angle_loop:
     ; cx represents the current column, looping from right side to left side
     ; angle can be calculated from the low 6 bits of the player angle + cx / 20 - 16
     ; this gives a 90 degree fov
+    ; since cosx = sinx + 16 here, we can get the cos before subtracting the 16
 
     ; divide cx by 20, result is in ax
     xor dx, dx
@@ -36,14 +37,12 @@ angle_loop:
     mov bx, 20
     div bx
     add al, [player_angle] ; add angle
-    sub al, 16 ; sub 16, to get the final result angle
+    mov ah, al ; save the angle to be used twice
+    call get_sin ; al now contains the cos value
 
-    mov dl, al ; save the angle to be used twice
-    call get_sin ; al now contains the sin value
-    mov al, ah ; save it to ah
-    mov al, dl ; get original value
-    add al, 16 ; add 16 (get cos instead of sin)
-    call get_sin ; get cos, so now ah is sin and al is cos
+    xchg al, ah ; save the sin to ah, and get the angle back
+    sub al, 16 ; add 16 (get sin instead of cos)
+    call get_sin ; get sin, so now ah is cos and al is sin
     loop angle_loop
 
 ; input: al 0 to 63
