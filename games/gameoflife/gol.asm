@@ -93,8 +93,6 @@ second_pass:
         stosb
         loop second_pass
         jmp main_loop
-hang:
-    jmp hang
 ; magic number to tell computer this is bootable
 times 510 - ($ - $$) db 0
 dw 0xAA55
