@@ -58,15 +58,14 @@ first_pass:
     ; check if current cell is alive
     test byte [es:di], 1
     jz .end
+    mov ax, 0x1010
     ; increment the upper nibble of the current cell's neighbors
-    add byte [es:di - 321], 0x10
-    add byte [es:di - 320], 0x10
-    add byte [es:di - 319], 0x10
-    add byte [es:di - 1], 0x10
-    add byte [es:di + 1], 0x10
-    add byte [es:di + 319], 0x10
-    add byte [es:di + 320], 0x10
-    add byte [es:di + 321], 0x10
+    add byte [es:di - 1], al
+    add byte [es:di + 1], al
+    add word [es:di - 321], ax
+    add byte [es:di - 319], al
+    add word [es:di + 319], ax
+    add byte [es:di + 321], al
     .end:
         inc di
         loop first_pass 
