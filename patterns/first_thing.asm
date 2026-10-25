@@ -36,6 +36,7 @@ pattern_start:
     inc bx
     mov dx, bx
     .outer_loop:
+        ; clamp cx to 320 and below
         mov cx, dx
         cmp cx, 320
         jbe .pre_loop
