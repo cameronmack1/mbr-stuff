@@ -19,6 +19,7 @@ start:
     ; initialize
     mov cx, 64000
     mov bx, 0x000F
+    xor di, di
 init_screen:
     ; 16 bit xorshift algorithm
     mov ax, dx
@@ -34,9 +35,64 @@ init_screen:
     test dx, 3
     cmove ax, bx
     
+    ; save the value to the cell
     stosb
     loop init_screen
 
+main_loop:
+    ; save tick count to dx
+    mov ah, 0x00
+    int 0x1A
+
+    ; compare dx to previous frame
+    cmp si, dx
+
+    ; jump back to loop if equal
+    je main_loop
+
+    ; else, save tick to si and draw next frame
+    mov si, dx
+    mov cx, 64000 ; there are 64000 pixels, we want to loop 64000 times
+    xor di, di ; reset di to 0
+first_pass:
+    ; check if current cell is alive
+    test byte [es:di], 1
+    jz .end
+    ; increment the upper nibble of the current cell's neighbors
+    add byte [es:di - 321], 0x10
+    add byte [es:di - 320], 0x10
+    add byte [es:di - 319], 0x10
+    add byte [es:di - 1], 0x10
+    add byte [es:di + 1], 0x10
+    add byte [es:di + 319], 0x10
+    add byte [es:di + 320], 0x10
+    add byte [es:di + 321], 0x10
+    .end:
+        inc di
+        loop first_pass 
+    mov cx, 64000 ; there are 64000 pixels, we want to loop 64000 times
+    xor di, di ; reset di to 0
+second_pass:
+    ; check if cell should be alive or dead
+    mov al, [es:di]
+    ; check if cell is alive with 2 neighbors
+    cmp al, 0x2F
+    je .survive
+
+    ; check if cell has 3 neighbors
+    and al, 0xF0
+    cmp al, 0x30
+    je .survive
+
+    mov al, 0x00
+    jmp .next
+
+    .survive:
+        mov al, 0x0F
+    .next:
+        stosb
+        loop second_pass
+        jmp main_loop
 hang:
     jmp hang
 ; magic number to tell computer this is bootable
