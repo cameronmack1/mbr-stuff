@@ -37,12 +37,18 @@ angle_loop:
     div bx
     add al, [player_angle] ; add angle
     sub al, 16 ; sub 16, to get the final result angle
-    call get_sin
+
+    mov dl, al ; save the angle to be used twice
+    call get_sin ; al now contains the sin value
+    mov al, ah ; save it to ah
+    mov al, dl ; get original value
+    add al, 16 ; add 16 (get cos instead of sin)
+    call get_sin ; get cos, so now ah is sin and al is cos
     loop angle_loop
 
 ; input: al 0 to 63
 ; output: the signed value in al
-; destroys bx, ah
+; destroys bx
 get_sin:
     ; al: 0000 0000
     ; to 0011 1111
