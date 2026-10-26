@@ -24,11 +24,30 @@ main_loop:
     jz .no_key
     xor ah, ah
     int 0x16
-    cmp al, 'd'
+    mov cl, al
+    cmp cl, 'd'
     je .turn_right
-    cmp al, 'a'
+    cmp cl, 'a'
     je .turn_left
 
+    mov al, [player_angle] ; copy angle to al
+    mov dl, al ; copy that value to dl
+    call get_sin ; al now contains the sin value
+
+    xchg ax, dx ; save the sin to dx, and get the angle back
+    add al, 16 ; add 16 (get cos instead of sin)
+    call get_sin ; get cos, so now dx is sin and ax is cos
+
+    cmp cl, 'w'
+    je .move
+    ; something here to make it move backwards instead of forwards
+    neg ax
+    neg dx
+    .move:
+        add [player_x], dx
+        add [player_y], ax
+
+        jmp main_loop.no_key
     .turn_left:
         sub [player_angle], 2
     .turn_right:
@@ -77,6 +96,7 @@ angle_loop:
     div bx
 
     add al, [player_angle] ; add angle
+    add al, 8
     mov dl, al ; save the angle to dl to be used twice
     call get_sin ; al now contains the cos value
 
@@ -95,8 +115,8 @@ angle_loop:
     .raycast_loop:
         inc bx
         ; add to ray position
-        add [ray_x], dx
-        add [ray_y], ax
+        add [ray_x], ax
+        add [ray_y], dx
         ; check if the ray has hit, we cant override ax, bx, cx, dx, or si, so we will use di and bp
         ; move it into the right spot then shift it right by 13, converting the 0-65535 x position into a 0-7 map position
         mov di, [ray_x]
@@ -165,6 +185,7 @@ get_sin:
     .done:
         cbw ; sign extend to 16 bits
         ret
+
 
 ; sine table
 ; each value is 5.625 degrees from the last, clockwise from 0 degrees
