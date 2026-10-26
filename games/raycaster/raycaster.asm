@@ -36,17 +36,40 @@ angle_loop:
     mov ax, cx
     mov bx, 20
     div bx
+
     add al, [player_angle] ; add angle
-    mov ah, al ; save the angle to be used twice
+    mov dl, al ; save the angle to dl to be used twice
     call get_sin ; al now contains the cos value
 
-    xchg al, ah ; save the sin to ah, and get the angle back
+    xchg ax, dx ; save the cos to dx, and get the angle back
     sub al, 16 ; add 16 (get sin instead of cos)
-    call get_sin ; get sin, so now ah is cos and al is sin
+    call get_sin ; get sin, so now ax is cos and dx is sin
+
+    ; now perform the raycast and draw based on how far it has to go
+    mov [ray_x], [player_x]
+    mov [ray_y], [player_y]
+    ; nx = (x + cos(angle))
+    ; ny = (y + sin(angle))
+    mov bx, 0
+    .raycast_loop:
+        inc bx
+        ; add to ray position
+        add [ray_x], dx
+        add [ray_y], ax
+        ; check if the ray has hit, we cant override ax, bx, cx, dx, or si, so we will use di and bp
+        ; move it into the right spot then shift it right by 13, converting the 0-65535 x position into a 0-7 map position
+        mov di, [ray_x]
+        shr di, 13
+        mov bp, [ray_y]
+        shr bp, 13
+        mov bl, [ds:map + bp] ; load the bp'th row of the map into bl
+        bt bp, di ; test the di'th bit of bp (bl)
+        jnc .raycast_loop ; do it again if it is a 0, aka we havent hit a wall
+
     loop angle_loop
 
 ; input: al 0 to 63
-; output: the signed value in al
+; output: the signed value in ax
 ; destroys bx
 get_sin:
     ; al: 0000 0000
@@ -64,6 +87,7 @@ get_sin:
         jz .done ; skip if we are
         neg al ; negative
     .done:
+        cbw ; sign extend to 16 bits
         ret
 
 ; sine table
@@ -85,9 +109,14 @@ player_angle:
     db 0
 ; the actual position is x or y / 32, but only saving it from 0-7 is less precise than this
 player_x:
-    db 127
+    dw 0x0100
 player_y:
-    db 127
+    dw 0x0100
+; need space for raycast position
+ray_x:
+    dw 0
+ray_y:
+    dw 0
 
 
 ; magic number to tell computer this is bootable
