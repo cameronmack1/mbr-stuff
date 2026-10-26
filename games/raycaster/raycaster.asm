@@ -15,8 +15,7 @@ start:
     mov gs, ax
 
 main_loop:
-    ;add word [player_x], 100
-    ;inc [player_angle]
+    inc [cols + 20]
 
     ; check for keypresses, https://en.wikipedia.org/wiki/INT_16H
     mov ah, 0x01
@@ -49,9 +48,9 @@ main_loop:
 
         jmp .no_key
     .turn_left:
-        sub [player_angle], 2
+        sub [player_angle], 4
     .turn_right:
-        inc [player_angle]
+        add [player_angle], 2
 
     .no_key:
     ; save tick count to dx
@@ -123,7 +122,11 @@ angle_loop:
         shr di, 13
         mov bp, [ray_y]
         shr bp, 13
-        mov bp, [ds:map + bp] ; load the bp'th row of the map into bl
+
+        ; i have a lot of extra space, so save bp to a variable to access the color after
+        mov [col], bp
+
+        mov bp, [ds:map + bp] ; load the bp'th row of the map into bp
         bt bp, di ; test the di'th bit of bp
         jnc .raycast_loop ; do it again if it is a 0, aka we havent hit a wall
 
@@ -135,6 +138,12 @@ angle_loop:
         mov ax, 0x2000
         div bx
         
+        ; get color and save it to bp
+        mov bp, [col]
+        shl bp, 3 ; bp = y * 8
+        add bp, di ; bp = y * 8 + x
+        mov dl, [ds:cols + bp]
+
         ; max value for height is 200
         cmp ax, 200
         jbe .get_pos
@@ -149,11 +158,12 @@ angle_loop:
             imul di, di, 320 ; get pixel offset from the column and height
             add di, cx
         .draw:
-            mov byte [gs:di], 0x0F ; draw then decrement 
+            mov byte [gs:di], dl ; draw then decrement 
             add di, 320
             dec ax
             jnz .draw
-    loop angle_loop
+    dec cx
+    jnz angle_loop
 
     ; now copy from buffer to screen
     xor di, di
@@ -188,7 +198,7 @@ get_sin:
 
 
 ; sine table
-; each value is 5.625 degrees from the last, clockwise from 0 degrees
+; each value is 2.8125 degrees from the last, clockwise from 0 degrees
 sin:
     db 0, 6, 12, 19, 25, 31, 37, 43
     db 49, 55, 60, 66, 71, 76, 81, 86
@@ -200,9 +210,21 @@ map:
     db 0x91
     db 0x81
     db 0x81
-    db 0x81
+    db 0x87
     db 0x81
     db 0xFF
+
+col:
+    db 0
+cols:
+    db 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    db 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x05, 0x05, 0x05, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+    db 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F
 ; player angle is from 0 to 63
 player_angle:
     db 0
