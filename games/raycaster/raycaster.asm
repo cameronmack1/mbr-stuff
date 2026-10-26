@@ -15,6 +15,26 @@ start:
     mov gs, ax
 
 main_loop:
+    ;add word [player_x], 100
+    ;inc [player_angle]
+
+    ; check for keypresses, https://en.wikipedia.org/wiki/INT_16H
+    mov ah, 0x01
+    int 0x16
+    jz .no_key
+    xor ah, ah
+    int 0x16
+    cmp al, 'd'
+    je .turn_right
+    cmp al, 'a'
+    je .turn_left
+
+    .turn_left:
+        sub [player_angle], 2
+    .turn_right:
+        inc [player_angle]
+
+    .no_key:
     ; save tick count to dx
     mov ah, 0x00
     int 0x1A
@@ -35,7 +55,7 @@ main_loop:
         mov [gs:di], ax
         add di, 2
         loop .clear_buffer
-    mov cx, 320 ; loop once for each column
+    mov cx, 319 ; loop once for each column
 angle_loop:
     ; cx represents the current column, looping from right side to left side
     ; angle can be calculated from the low 6 bits of the player angle + cx / 20 - 16
@@ -114,7 +134,6 @@ angle_loop:
         mov ax, [gs:di]
         stosw
         loop .copy_buffer
-    inc [player_angle]
     jmp main_loop
 
 ; input: al 0 to 63
