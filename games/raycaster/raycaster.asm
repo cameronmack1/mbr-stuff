@@ -50,11 +50,19 @@ main_loop:
     ; clear the screen
     mov cx, 32000
     xor di, di
-    xor ax, ax
-    .clear_buffer:
-        mov [gs:di], ax
-        add di, 2
-        loop .clear_buffer
+    mov al, 0x67
+    ; create sky
+    .clear_buffer_up:
+        mov word [gs:di], ax
+        inc di
+        loop .clear_buffer_up
+    mov al, 0x77
+    mov cx, 32000
+    ; create floor
+    .clear_buffer_down:
+        mov word [gs:di], ax
+        inc di
+        loop .clear_buffer_down
     mov cx, 319 ; loop once for each column
 angle_loop:
     ; cx represents the current column, looping from right side to left side
