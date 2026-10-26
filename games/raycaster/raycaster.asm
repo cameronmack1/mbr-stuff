@@ -24,6 +24,11 @@ main_loop:
 
     ; else, save tick to si and draw next frame
     mov si, dx
+    ; clear the screen
+    mov cx, 32000
+    xor di, di
+    xor ax, ax
+    rep stosw
     mov cx, 320 ; loop once for each column
 angle_loop:
     ; cx represents the current column, looping from right side to left side
@@ -46,8 +51,10 @@ angle_loop:
     call get_sin ; get sin, so now ax is cos and dx is sin
 
     ; now perform the raycast and draw based on how far it has to go
-    mov [ray_x], [player_x]
-    mov [ray_y], [player_y]
+    mov bx, [player_x]
+    mov [ray_x], bx
+    mov bx, [player_y]
+    mov [ray_y], bx
     ; nx = (x + cos(angle))
     ; ny = (y + sin(angle))
     mov bx, 0
@@ -62,11 +69,39 @@ angle_loop:
         shr di, 13
         mov bp, [ray_y]
         shr bp, 13
-        mov bl, [ds:map + bp] ; load the bp'th row of the map into bl
-        bt bp, di ; test the di'th bit of bp (bl)
+        mov bp, [ds:map + bp] ; load the bp'th row of the map into bl
+        bt bp, di ; test the di'th bit of bp
         jnc .raycast_loop ; do it again if it is a 0, aka we havent hit a wall
 
+        ; now render the wall
+        ; h = K/s, where K is some constant (4096) and s is the amount of steps we take
+
+        ; ax = dx:ax / bx
+        xor dx, dx
+        mov ax, 0x2000
+        div bx
+        
+        ; max value for height is 200
+        cmp ax, 200
+        jbe .get_pos
+        mov ax, 200
+        .get_pos:
+            ; bx is half of ax, ax is our counter for drawing, bx is for starting offset
+            mov bx, ax
+            shr bx, 1
+            mov di, 100
+            sub di, bx ; top of where we start drawing from
+
+            imul di, di, 320 ; get pixel offset from the column and height
+            add di, cx
+        .draw:
+            mov byte [es:di], 0x0F ; draw then decrement 
+            add di, 320
+            dec ax
+            jnz .draw
     loop angle_loop
+    inc [player_angle]
+    jmp main_loop
 
 ; input: al 0 to 63
 ; output: the signed value in ax
@@ -98,7 +133,7 @@ sin:
 map:
     db 0xFF
     db 0x81
-    db 0x81
+    db 0x91
     db 0x81
     db 0x81
     db 0x81
@@ -109,9 +144,9 @@ player_angle:
     db 0
 ; the actual position is x or y / 32, but only saving it from 0-7 is less precise than this
 player_x:
-    dw 0x0100
+    dw 0x8000
 player_y:
-    dw 0x0100
+    dw 0x8000
 ; need space for raycast position
 ray_x:
     dw 0
