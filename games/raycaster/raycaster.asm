@@ -10,6 +10,9 @@ start:
     ; vram can now be accessed with es:di
     mov ax, 0xa000
     mov es, ax
+    ; double buffer can be accessed with gs:di
+    mov ax, 0x1000
+    mov gs, ax
 
 main_loop:
     ; save tick count to dx
@@ -28,7 +31,10 @@ main_loop:
     mov cx, 32000
     xor di, di
     xor ax, ax
-    rep stosw
+    .clear_buffer:
+        mov [gs:di], ax
+        add di, 2
+        loop .clear_buffer
     mov cx, 320 ; loop once for each column
 angle_loop:
     ; cx represents the current column, looping from right side to left side
@@ -95,11 +101,19 @@ angle_loop:
             imul di, di, 320 ; get pixel offset from the column and height
             add di, cx
         .draw:
-            mov byte [es:di], 0x0F ; draw then decrement 
+            mov byte [gs:di], 0x0F ; draw then decrement 
             add di, 320
             dec ax
             jnz .draw
     loop angle_loop
+
+    ; now copy from buffer to screen
+    xor di, di
+    mov cx, 32000
+    .copy_buffer:
+        mov ax, [gs:di]
+        stosw
+        loop .copy_buffer
     inc [player_angle]
     jmp main_loop
 
