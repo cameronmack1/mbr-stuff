@@ -47,7 +47,7 @@ main_loop:
         add [player_x], dx
         add [player_y], ax
 
-        jmp main_loop.no_key
+        jmp .no_key
     .turn_left:
         sub [player_angle], 2
     .turn_right:
@@ -85,23 +85,23 @@ main_loop:
     mov cx, 319 ; loop once for each column
 angle_loop:
     ; cx represents the current column, looping from right side to left side
-    ; angle can be calculated from the low 6 bits of the player angle + cx / 20 - 16
+    ; angle can be calculated from the low 6 bits of the player angle + cx / 10 - 32
     ; this gives a 90 degree fov
-    ; since cosx = sinx + 16 here, we can get the cos before subtracting the 16
+    ; since cosx = sinx + 32 here, we can get the cos before subtracting the 32
 
-    ; divide cx by 20, result is in ax
+    ; divide cx by 10, result is in ax
     xor dx, dx
     mov ax, cx
-    mov bx, 20
+    mov bx, 10
     div bx
 
     add al, [player_angle] ; add angle
-    add al, 8
+    add al, 16
     mov dl, al ; save the angle to dl to be used twice
     call get_sin ; al now contains the cos value
 
     xchg ax, dx ; save the cos to dx, and get the angle back
-    sub al, 16 ; add 16 (get sin instead of cos)
+    sub al, 32 ; add 32 (get sin instead of cos)
     call get_sin ; get sin, so now ax is cos and dx is sin
 
     ; now perform the raycast and draw based on how far it has to go
@@ -169,16 +169,16 @@ angle_loop:
 ; destroys bx
 get_sin:
     ; al: 0000 0000
-    ; to 0011 1111
-    ; low 4 bits are pos within quadrant
+    ; to 0111 1111
+    ; low 5 bits are pos within quadrant
     ; high 2 bits are which quadrant
-    test al, 16 ; test if we are mirrored
+    test al, 32 ; test if we are mirrored
     jz .no_reverse ; skip reversing if we are
-    xor al, 15 ; invert the bits of the index (reverse it)
+    xor al, 31 ; invert the bits of the index (reverse it)
     .no_reverse:
         movzx bx, al ; move al to bl, clear bx
-        and bl, 15 ; get the index from bl, not al, because bl needs to be cleared of the 2 high bits for indexing
-        test al, 32 ; are we negative?
+        and bl, 31 ; get the index from bl, not al, because bl needs to be cleared of the 2 high bits for indexing
+        test al, 64 ; are we negative?
         mov al, [sin + bx] ; get the sin value from the index in bx
         jz .done ; skip if we are
         neg al ; negative
@@ -190,8 +190,10 @@ get_sin:
 ; sine table
 ; each value is 5.625 degrees from the last, clockwise from 0 degrees
 sin:
-    db 0, 12, 25, 37, 49, 60, 71, 81
-    db 90, 98, 106, 112, 117, 122, 125, 127
+    db 0, 6, 12, 19, 25, 31, 37, 43
+    db 49, 55, 60, 66, 71, 76, 81, 86
+    db 90, 94, 98, 102, 106, 109, 112, 115
+    db 117, 120, 122, 123, 125, 126, 127, 127
 map:
     db 0xFF
     db 0x81
